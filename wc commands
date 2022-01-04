@@ -1,0 +1,16 @@
+export HADOOP_CLASSPATH=$(hadoop classpath)
+echo $HADOOP_CLASSPATH
+start-all.sh
+jps
+hdfs dfs -mkdir /wc/
+hdfs dfs -mkdir /wc/input/
+hdfs dfs -put '/home/itsubuntu/wc/input.txt' /wc/input/
+hdfs dfs -cat /wc/input/*
+cd /home/itsubuntu/wc
+pwd
+ls
+javac -classpath ${HADOOP_CLASSPATH} -d '/home/itsubuntu/wc/cs' '/home/itsubuntu/wc/WordCount.java'
+jar -cvf WordCount.jar -C '/home/itsubuntu/wc/cs'/ .
+added manifest
+hadoop jar '/home/itsubuntu/wc/WordCount.jar' WordCount /wc/input /wc/output
+hdfs dfs -cat wc/output/*
