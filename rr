@@ -1,0 +1,17 @@
+package udp;
+
+import java.io.*;
+import java.net.*;
+
+public class udp_clt_echo {
+
+    public static void main(String args[]) {
+        DatagramSocket sock = null;
+        int port = 7777;
+        String s;
+        BufferedReader cin = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            sock = new DatagramSocket();
+            InetAddress host = InetAddress.getByName("localhost");
+            while (true) { //take input and send the packet
+                echo("Enter message to send : ");
