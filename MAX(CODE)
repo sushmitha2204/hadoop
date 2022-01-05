@@ -1,0 +1,130 @@
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+
+public class weather {
+    public static String calOutputName ="California";
+
+    // Mapper Class
+    public static class WhetherForcastMapper extends Mapper<Object, Text, Text, Text> {
+
+        public void map(Object keyOffset, Text dayReport, Context con) throws IOException, InterruptedException {
+            StringTokenizer strTokens = new StringTokenizer(dayReport.toString(), "\t");
+            int counter = 0;
+            Float currnetTemp = null;
+            Float minTemp = Float.MAX_VALUE;
+            Float maxTemp = Float.MIN_VALUE;
+            String date = null;
+            String currentTime = null;
+            String minTempANDTime = null;
+            String maxTempANDTime = null;
+
+            while (strTokens.hasMoreElements()) {
+                if (counter == 0) {
+                    date = strTokens.nextToken();
+                } else {
+                    if (counter % 2 == 1) {
+                        currentTime = strTokens.nextToken();
+                    } else {
+                        currnetTemp =Float.parseFloat(strTokens.nextToken());
+                        if (minTemp > currnetTemp) {
+                            minTemp = currnetTemp;
+                            minTempANDTime = minTemp + "AND" + currentTime;
+                        }
+                        if (maxTemp < currnetTemp) {
+                            maxTemp = currnetTemp;
+                            maxTempANDTime = maxTemp + "AND" + currentTime;
+                        }
+                    }
+                }
+                counter++;
+            }
+// Write to context - MinTemp, MaxTemp and corresponding time
+            Text temp = new Text();
+            temp.set(maxTempANDTime);
+            Text dateText = new Text();
+            dateText.set(date);
+            con.write(dateText, temp);
+            temp.set(minTempANDTime);
+            dateText.set(date);
+            con.write(dateText, temp);
+
+        }
+    }
+    // Reducer class
+    public static class WhetherForcastReducer extends
+            Reducer<Text, Text, Text, Text> {
+
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            int counter = 0;
+            String reducerInputStr[] = null;
+            String f1Time = "";
+            String f2Time = "";
+            String f1 = "", f2 = "";
+            Text result = new Text();
+            for (Text value : values) {
+                if (counter == 0) {
+                    reducerInputStr = value.toString().split("AND");
+                    f1 = reducerInputStr[0];
+                    f1Time = reducerInputStr[1];
+                } else {
+                    reducerInputStr = value.toString().split("AND");
+                    f2 = reducerInputStr[0];
+                    f2Time = reducerInputStr[1];
+                }
+
+                counter = counter + 1;
+            }
+            if (Float.parseFloat(f1) > Float.parseFloat(f2)) {
+
+                result = new Text("Time: " + f2Time + "\t" + "MinTemp: " + f2 + "\t" + "Time: " + f1Time + " MaxTemp: " + f1);
+            } else {
+
+                result = new Text("Time: " + f1Time + "\t" + "MinTemp: " + f1 + "\t" + "Time: " + f2Time + " MaxTemp: " + f2);
+            }
+            context.write(key, result);
+        }
+    }
+    public static void main(String[] args) throws IOException,ClassNotFoundException,InterruptedException {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf,"Wheather Statistics of USA");
+        job.setMapperClass(WhetherForcastMapper.class);
+        job.setReducerClass(WhetherForcastReducer.class) ;
+        job.setJarByClass(weather.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+
+
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } }
+}
+
+    © 2022 GitHub, Inc.
+
+    Terms
+    Privacy
+    Security
+    Status
+    Docs
+    Contact GitHub
+    Pricing
+    API
+    Training
+    Blog
+    About
+
